@@ -19,23 +19,23 @@ services:
             context: ./docker/php
             args:
                 version: ${DOCKER_PHP_VERSION}
-        working_dir: ${APP_PATH_CONTAINER}
-        container_name: ${APP_NAME}.php
-        hostname: backend.${APP_NAME}.php
+        working_dir: ${DOCKER_CONTAINER_PATH}
+        container_name: ${DOCKER_CONTAINER_NAME}.php
+        hostname: backend.${DOCKER_CONTAINER_NAME}.php
         environment:
             # generic
-            TZ: ${APP_TIMEZONE}
+            TZ: ${DOCKER_CONTAINER_TIMEZONE}
             # php runtime
-            PHP_DISPLAY_ERRORS:
-            PHP_MEMORY_LIMIT:
-            PHP_MAX_EXECUTION_TIME:
+            PHP_DISPLAY_ERRORS: ${PHP_DISPLAY_ERRORS}
+            PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT}
+            PHP_MAX_EXECUTION_TIME: ${PHP_MAX_EXECUTION_TIME}
             # database
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_USER: ${DB_USERNAME}
-            MYSQL_PASSWORD: ${DB_PASSWORD}
-            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${DOCKER_DATABASE_DATABASE}
+            MYSQL_USER: ${DOCKER_DATABASE_USERNAME}
+            MYSQL_PASSWORD: ${DOCKER_DATABASE_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DOCKER_DATABASE_ROOT_PASSWORD}
             # PHPSTORM setup for xDebug
-            PHP_IDE_CONFIG: serverName=${APP_NAME}
+            PHP_IDE_CONFIG: serverName=${DOCKER_CONTAINER_NAME}
             # xDebug configuration
             XDEBUG_ENABLED: ${XDEBUG_ENABLED}
             XDEBUG_REMOTE_HOST: ${XDEBUG_CLIENT_HOST}
@@ -45,7 +45,9 @@ services:
             XDEBUG_MAXNESTING_LEVEL: ${XDEBUG_MAXNESTING_LEVEL}
             XDEBUG_REMOTE_CONNECT_BACK: ${XDEBUG_REMOTE_CONNECT_BACK}
         volumes:
-            - .:${APP_PATH_CONTAINER}
+            - .:${DOCKER_CONTAINER_PATH}
+        ports:
+            - ${DOCKER_PHP_PORT}:9000
         networks:
             - backend
 
@@ -55,9 +57,9 @@ services:
             context: ./docker/composer
             args:
                 version: ${DOCKER_COMPOSER_VERSION}
-        working_dir: ${APP_PATH_CONTAINER}
-        container_name: ${APP_NAME}.composer
-        hostname: backend.${APP_NAME}.composer
+        working_dir: ${DOCKER_CONTAINER_PATH}
+        container_name: ${DOCKER_CONTAINER_NAME}.composer
+        hostname: backend.${DOCKER_CONTAINER_NAME}.composer
         command: ['docker-setup']
         volumes_from:
             - php
@@ -72,19 +74,19 @@ services:
             context: ./docker/webserver
             args:
                 version: ${DOCKER_WEBSERVER_VERSION}
-        working_dir: ${APP_PATH_CONTAINER}
-        container_name: ${APP_NAME}.webserver
-        hostname: backend.${APP_NAME}.webserver
+        working_dir: ${DOCKER_CONTAINER_PATH}
+        container_name: ${DOCKER_CONTAINER_NAME}.webserver
+        hostname: backend.${DOCKER_CONTAINER_NAME}.webserver
         restart: unless-stopped
         tty: true
         environment:
-            TZ: ${APP_TIMEZONE}
+            TZ: ${DOCKER_CONTAINER_TIMEZONE}
         volumes:
-            - .:${APP_PATH_CONTAINER}
+            - .:${DOCKER_CONTAINER_PATH}
             - ./docker/webserver/conf.d/:/etc/nginx/conf.d/
         ports:
-            - ${NGINX_HTTP_PORT}:80
-            - ${NGINX_HTTPS_PORT}:443
+            - ${DOCKER_WEBSERVER_HTTP_PORT}:80
+            - ${DOCKER_WEBSERVER_HTTPS_PORT}:443
         depends_on:
             - php
         networks:
@@ -96,18 +98,18 @@ services:
             context: ./docker/database
             args:
                 version: ${DOCKER_DATABASE_VERSION}
-        container_name: ${APP_NAME}.database
-        hostname: backend.${APP_NAME}.database
+        container_name: ${DOCKER_CONTAINER_NAME}.database
+        hostname: backend.${DOCKER_CONTAINER_NAME}.database
         environment:
-            TZ: ${APP_TIMEZONE}
-            MYSQL_DATABASE: ${DB_DATABASE}
-            MYSQL_USER: ${DB_USERNAME}
-            MYSQL_PASSWORD: ${DB_PASSWORD}
-            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            TZ: ${DOCKER_CONTAINER_TIMEZONE}
+            MYSQL_DATABASE: ${DOCKER_DATABASE_DATABASE}
+            MYSQL_USER: ${DOCKER_DATABASE_USERNAME}
+            MYSQL_PASSWORD: ${DOCKER_DATABASE_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DOCKER_DATABASE_ROOT_PASSWORD}
         volumes:
             - database:/var/lib/mysq
         ports:
-            - ${DB_PORT}:3306
+            - ${DOCKER_DATABASE_PORT}:3306
         depends_on:
             - php
         networks:
@@ -119,10 +121,10 @@ services:
             context: ./docker/redis
             args:
                 version: ${DOCKER_REDIS_VERSION}
-        container_name: ${APP_NAME}.redis
-        hostname: backend.${APP_NAME}.redis
+        container_name: ${DOCKER_CONTAINER_NAME}.redis
+        hostname: backend.${DOCKER_CONTAINER_NAME}.redis
         ports:
-            - ${REDIS_PORT}:6379
+            - ${DOCKER_REDIS_PORT}:6379
         depends_on:
             - php
         networks:
