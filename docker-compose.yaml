@@ -37,6 +37,7 @@ services:
             # PHPSTORM setup for xDebug
             PHP_IDE_CONFIG: serverName=${DOCKER_CONTAINER_NAME}
             # xDebug configuration
+            XDEBUG_IDEKEY: PHPSTORM
             XDEBUG_ENABLED: ${XDEBUG_ENABLED}
             XDEBUG_REMOTE_HOST: ${XDEBUG_CLIENT_HOST}
             XDEBUG_REMOTE_PORT: ${XDEBUG_CLIENT_PORT}
