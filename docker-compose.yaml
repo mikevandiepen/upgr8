@@ -1,0 +1,129 @@
+# The latest docker version, docker-compose file created at 12-11-2020.
+version: '3.8'
+
+# The network used to communicate.
+networks:
+    backend:
+        driver: bridge
+
+# Volumes used for this environment.
+volumes:
+    database:
+
+# The services which will be running for this project.
+services:
+
+    # This references to the Dockerfile in "./docker/php".
+    php:
+        build:
+            context: ./docker/php
+            args:
+                version: ${DOCKER_PHP_VERSION}
+        working_dir: ${APP_PATH_CONTAINER}
+        container_name: ${APP_NAME}.php
+        hostname: backend.${APP_NAME}.php
+        environment:
+            # generic
+            TZ: ${APP_TIMEZONE}
+            # php runtime
+            PHP_DISPLAY_ERRORS:
+            PHP_MEMORY_LIMIT:
+            PHP_MAX_EXECUTION_TIME:
+            # database
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            # PHPSTORM setup for xDebug
+            PHP_IDE_CONFIG: serverName=${APP_NAME}
+            # xDebug configuration
+            XDEBUG_ENABLED: ${XDEBUG_ENABLED}
+            XDEBUG_REMOTE_HOST: ${XDEBUG_CLIENT_HOST}
+            XDEBUG_REMOTE_PORT: ${XDEBUG_CLIENT_PORT}
+            XDEBUG_PROFILER_ENABLE: ${XDEBUG_ENABLED}
+            XDEBUG_REMOTE_AUTOSTART: ${XDEBUG_REMOTE_AUTOSTART}
+            XDEBUG_MAXNESTING_LEVEL: ${XDEBUG_MAXNESTING_LEVEL}
+            XDEBUG_REMOTE_CONNECT_BACK: ${XDEBUG_REMOTE_CONNECT_BACK}
+        volumes:
+            - .:${APP_PATH_CONTAINER}
+        networks:
+            - backend
+
+    # This references to the Dockerfile in "./docker/composer".
+    composer:
+        build:
+            context: ./docker/composer
+            args:
+                version: ${DOCKER_COMPOSER_VERSION}
+        working_dir: ${APP_PATH_CONTAINER}
+        container_name: ${APP_NAME}.composer
+        hostname: backend.${APP_NAME}.composer
+        command: ['docker-setup']
+        volumes_from:
+            - php
+        depends_on:
+            - php
+        networks:
+            - backend
+
+    # This references to the Dockerfile in "./docker/webserver".
+    webserver:
+        build:
+            context: ./docker/webserver
+            args:
+                version: ${DOCKER_WEBSERVER_VERSION}
+        working_dir: ${APP_PATH_CONTAINER}
+        container_name: ${APP_NAME}.webserver
+        hostname: backend.${APP_NAME}.webserver
+        restart: unless-stopped
+        tty: true
+        environment:
+            TZ: ${APP_TIMEZONE}
+        volumes:
+            - .:${APP_PATH_CONTAINER}
+            - ./docker/webserver/conf.d/:/etc/nginx/conf.d/
+        ports:
+            - ${NGINX_HTTP_PORT}:80
+            - ${NGINX_HTTPS_PORT}:443
+        depends_on:
+            - php
+        networks:
+            - backend
+
+    # This references to the Dockerfile in "./docker/database".
+    database:
+        build:
+            context: ./docker/database
+            args:
+                version: ${DOCKER_DATABASE_VERSION}
+        container_name: ${APP_NAME}.database
+        hostname: backend.${APP_NAME}.database
+        environment:
+            TZ: ${APP_TIMEZONE}
+            MYSQL_DATABASE: ${DB_DATABASE}
+            MYSQL_USER: ${DB_USERNAME}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+        volumes:
+            - database:/var/lib/mysq
+        ports:
+            - ${DB_PORT}:3306
+        depends_on:
+            - php
+        networks:
+            - backend
+
+    # This references to the Dockerfile in "./docker/redis".
+    redis:
+        build:
+            context: ./docker/redis
+            args:
+                version: ${DOCKER_REDIS_VERSION}
+        container_name: ${APP_NAME}.redis
+        hostname: backend.${APP_NAME}.redis
+        ports:
+            - ${REDIS_PORT}:6379
+        depends_on:
+            - php
+        networks:
+            - backend
